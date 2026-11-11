@@ -12,7 +12,16 @@ import { initDb } from './src/config/db.js';
 
 const app = express();
 
-app.use(cors({ origin: config.clientOrigin }));
+// Updated CORS config to explicitly allow your Render frontend domain
+app.use(cors({
+  origin: [
+    'https://dwell-frontend-ahex.onrender.com',
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ],
+  credentials: true
+}));
+
 app.use(express.json());
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
@@ -35,5 +44,5 @@ try {
 }
 
 app.listen(config.port, () => {
-  console.log(`Dwell API running on http://localhost:${config.port}`);
+  console.log(`Dwell API running on port ${config.port}`);
 });

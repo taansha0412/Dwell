@@ -23,12 +23,18 @@ CREATE TABLE IF NOT EXISTS songs (
   artist      VARCHAR(255) NOT NULL,
   album       VARCHAR(255) NOT NULL DEFAULT '',
   cover       TEXT,
-  filename    VARCHAR(255) NOT NULL,                -- file inside server/uploads/
+  filename    VARCHAR(255) NOT NULL,                -- generated name (its extension tells the audio type)
   size        BIGINT NOT NULL DEFAULT 0,
   song_key    VARCHAR(255) NOT NULL,                -- normalized artist and title, to match other releases
   uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_songs_key ON songs (song_key);
+
+-- The audio itself is stored in the database (not on the server's disk): hosts like Render have an
+-- ephemeral disk that is wiped on every restart/redeploy, which made uploaded songs vanish.
+ALTER TABLE songs ADD COLUMN IF NOT EXISTS audio BYTEA;
+ALTER TABLE songs ADD COLUMN IF NOT EXISTS mime  VARCHAR(100);
+ALTER TABLE songs ALTER COLUMN audio SET STORAGE EXTERNAL;  -- no compression: lets Postgres read just a byte range
 
 CREATE TABLE IF NOT EXISTS playlists (
   id         VARCHAR(40) PRIMARY KEY,               -- liked_<userId> or u_xxxx

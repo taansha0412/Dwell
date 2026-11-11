@@ -12,13 +12,21 @@ import { initDb } from './src/config/db.js';
 
 const app = express();
 
-// Updated CORS config to explicitly allow your Render frontend domain
+// Render (and most hosts) put a reverse proxy in front of the app and terminate HTTPS there.
+// Without this, Express sees every request as plain http, so req.protocol is "http" and any
+// URL we build from it (e.g. the audio stream URL) is http:// -> "Mixed Content" on an https site.
+// It also makes req.ip the real visitor instead of Render's proxy (used by the login rate limit).
+app.set('trust proxy', 1);
+
+// Allowed frontends. CLIENT_ORIGIN may hold several comma-separated origins.
+const allowedOrigins = [
+  'https://dwell-frontend-ahex.onrender.com',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  ...config.clientOrigin.split(',').map((o) => o.trim().replace(/\/+$/, '')).filter(Boolean),
+];
 app.use(cors({
-  origin: [
-    'https://dwell-frontend-ahex.onrender.com',
-    'http://localhost:5173',
-    'http://localhost:3000'
-  ],
+  origin: [...new Set(allowedOrigins)],
   credentials: true
 }));
 

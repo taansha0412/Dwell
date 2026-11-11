@@ -51,7 +51,7 @@ If the connection fails the server prints a plain-English reason and exits (wron
 |---|---|
 | `users` | profiles: username + scrypt password hash |
 | `sessions` | logins (hashed tokens, 30 days) |
-| `songs` | uploaded full-length songs: title, artist, album, cover, filename, size |
+| `songs` | uploaded full-length songs: title, artist, album, cover, size, and the audio itself |
 | `playlists` | each profile's Liked Songs + playlists (with their order) |
 | `playlist_tracks` | tracks inside each playlist, in order (deleted with the playlist) |
 
@@ -62,15 +62,25 @@ When you click a song, the server picks the source (`GET /api/playback`):
 1. **Your library**: if you've uploaded a full-length file for that song, it plays that. Songs match by the
    song's id, or by artist + title, so other releases of the same song match too.
 2. **30-second preview** (iTunes): otherwise the preview plays, and the player bar shows an **Upload full song**
-   button. After you upload, the file is stored in `server/uploads/`, and plays by default from then on.
+   button. After you upload, the file is stored in your Supabase database, and plays by default from then on.
    A small trash icon next to "Full song · your library" removes an upload.
 
 If an uploaded file can't be played by your browser, Dwell falls back to the preview and tells you why.
 Only upload music you own or have the right to use.
 
-Uploaded audio files live on the server's disk (`server/uploads/`); their details live in Supabase.
-If you deploy the server somewhere with a temporary disk, uploads will disappear on restart. Use a host with
-persistent storage (or move files to Supabase Storage).
+Uploaded audio files are stored in the Supabase `songs` table itself (column `audio`), next to their details, so they
+survive server restarts and redeploys on hosts with a temporary disk (e.g. Render). Keep an eye on your Supabase database
+size (500 MB on the free plan); for a big library, move the files to Supabase Storage instead.
+
+Songs uploaded by an older version of Dwell (when files lived on the server's disk) have no audio in the database;
+they play the 30s preview until you upload the full file again.
+
+## Deploying behind a proxy (Render, etc.)
+
+The server sets `trust proxy`, so it knows the public request is HTTPS and returns `https://` stream URLs (otherwise the
+browser blocks them as Mixed Content). Set `CLIENT_ORIGIN` on the server to your frontend's URL (comma-separate several).
+For a React Router site hosted as a Render *Static Site*, add a rewrite rule `/*` -> `/index.html`, or refreshing
+a page like `/library` shows a 404.
 
 ## Profiles
 

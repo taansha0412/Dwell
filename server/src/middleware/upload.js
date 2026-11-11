@@ -1,19 +1,13 @@
 import multer from 'multer';
-import crypto from 'node:crypto';
-import fs from 'node:fs';
 import path from 'node:path';
 import config from '../config/index.js';
 
 const ALLOWED = new Set(['.mp3', '.m4a', '.aac', '.wav', '.flac', '.ogg', '.opus']);
 
-fs.mkdirSync(config.uploadDir, { recursive: true });
-
+// Files are held in memory just long enough to be saved into the database (see library.service.js).
+// They are NOT written to disk: the disk on Render is temporary and gets wiped on restart/redeploy.
 export const uploadSong = multer({
-  storage: multer.diskStorage({
-    destination: config.uploadDir,
-    filename: (_req, file, cb) =>
-      cb(null, crypto.randomUUID() + path.extname(file.originalname).toLowerCase()),
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: config.maxUploadMb * 1024 * 1024, files: 1 },
   fileFilter: (_req, file, cb) => {
     const ok = ALLOWED.has(path.extname(file.originalname).toLowerCase());
